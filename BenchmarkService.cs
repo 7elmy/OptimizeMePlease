@@ -88,7 +88,38 @@ namespace OptimizeMePlease
         [Benchmark]
         public List<AuthorDTO> GetAuthors_Optimized()
         {
-            List<AuthorDTO> authors = new List<AuthorDTO>();
+            using var dbContext = new AppDbContext();
+
+            var authors = dbContext.Authors.AsNoTracking()
+                                        .AsSplitQuery()
+                                        .Where(x => x.Age == 27 && x.Country == "Serbia")
+                                        .OrderByDescending(x => x.BooksCount).Take(2)
+                                        .Select(x => new AuthorDTO
+                                        {
+                                            UserCreated = x.User.Created,
+                                            UserEmailConfirmed = x.User.EmailConfirmed,
+                                            UserFirstName = x.User.FirstName,
+                                            UserLastActivity = x.User.LastActivity,
+                                            UserLastName = x.User.LastName,
+                                            UserEmail = x.User.Email,
+                                            UserName = x.User.UserName,
+                                            UserId = x.User.Id,
+                                            RoleId = x.User.UserRoles.First().RoleId,
+                                            BooksCount = x.BooksCount,
+                                            AllBooks = x.Books.Where(z => z.Published.Year < 1900)
+                                            .Select(y => new BookDto
+                                            {
+                                                Id = y.Id,
+                                                Name = y.Name,
+                                                Published = y.Published,
+                                                ISBN = y.ISBN,
+                                                PublisherName = y.Publisher.Name
+                                            }).ToList(),
+                                            AuthorAge = x.Age,
+                                            AuthorCountry = x.Country,
+                                            AuthorNickName = x.NickName,
+                                            Id = x.Id
+                                        }).ToList();
 
             return authors;
         }
